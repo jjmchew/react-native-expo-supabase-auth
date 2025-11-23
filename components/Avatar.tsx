@@ -45,7 +45,7 @@ export default function Avatar({ url, size = 150, onUpload }: Props) {
       setUploading(true);
 
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images, // Restrict to only images
+        mediaTypes: ["images"], // Restrict to only images
         allowsMultipleSelection: false, // Can only select one image
         allowsEditing: true, // Allows the user to crop / rotate their photo before uploading it
         quality: 1,
@@ -61,7 +61,7 @@ export default function Avatar({ url, size = 150, onUpload }: Props) {
       console.log("Got image", image);
 
       if (!image.uri) {
-        throw new Error("No image uri!"); // Realistically, this should never happen, but just in case...
+        throw new Error("No image uri!");
       }
 
       const arraybuffer = await fetch(image.uri).then((res) =>

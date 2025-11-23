@@ -11,6 +11,7 @@ import {
   Platform,
 } from "react-native";
 import { supabase } from "../lib/supabase";
+import * as Linking from "expo-linking";
 
 // Tells Supabase Auth to continuously refresh the session automatically if
 // the app is in the foreground. When this is added, you will continue to receive
@@ -53,6 +54,19 @@ export default function Auth() {
 
     if (!session)
       Alert.alert("Please check your inbox for email verification!");
+    setLoading(false);
+  }
+
+  async function resetPasswordForEmail() {
+    setLoading(true);
+    const redirectUrl = Linking.createURL("/changepassword");
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: redirectUrl,
+    });
+
+    if (error) Alert.alert(`error resetting password: ${error.message}`);
+    else Alert.alert(`Please check your inbox for password reset email.`);
+
     setLoading(false);
   }
 
@@ -100,6 +114,13 @@ export default function Auth() {
           title="Sign up"
           disabled={loading}
           onPress={() => signUpWithEmail()}
+        />
+      </View>
+      <View style={styles.verticallySpaced}>
+        <Button
+          title="forgot password"
+          disabled={loading}
+          onPress={() => resetPasswordForEmail()}
         />
       </View>
       <View style={{ height: 30 }} />
