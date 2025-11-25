@@ -1,17 +1,14 @@
-import { useState, useEffect } from "react";
+import { use, useState, useEffect } from "react";
 import { supabase } from "../lib/supabase";
-import {
-  StyleSheet,
-  ScrollView,
-  View,
-  Alert,
-  Button,
-  TextInput,
-} from "react-native";
-import { Session } from "@supabase/supabase-js";
+import { StyleSheet, View, Alert, Button, TextInput } from "react-native";
 import Avatar from "@/components/Avatar";
+import ViewWithKeyboard from "@/components/ViewWithKeyboard";
+import { AuthContext } from "@/context/auth";
+import { router } from "expo-router";
 
-export default function Account({ session }: { session: Session }) {
+export default function Account() {
+  const { session, signOut } = use(AuthContext);
+
   const [loading, setLoading] = useState(true);
   const [username, setUsername] = useState("");
   const [website, setWebsite] = useState("");
@@ -84,61 +81,65 @@ export default function Account({ session }: { session: Session }) {
     }
   }
 
+  const handleSignOut = () => {
+    signOut();
+    router.replace("/signin");
+  };
+
   return (
-    <ScrollView
-      style={styles.container}
-      automaticallyAdjustKeyboardInsets={true}
-    >
-      <View>
-        <Avatar
-          size={200}
-          url={avatarUrl}
-          onUpload={(url: string) => {
-            setAvatarUrl(url);
-            updateProfile({ username, website, avatar_url: url });
-          }}
-        />
-      </View>
-      <View style={[styles.verticallySpaced, styles.mt20]}>
-        <TextInput value={session?.user?.email} style={styles.input} />
-      </View>
-      <View style={styles.verticallySpaced}>
-        <TextInput
-          style={styles.input}
-          value={username || ""}
-          onChangeText={(text) => setUsername(text)}
-          placeholder="username"
-        />
-      </View>
-      <View style={styles.verticallySpaced}>
-        <TextInput
-          style={styles.input}
-          value={website || ""}
-          onChangeText={(text) => setWebsite(text)}
-          placeholder="website"
-        />
-      </View>
+    <ViewWithKeyboard>
+      <View style={styles.container}>
+        <View>
+          <Avatar
+            size={200}
+            url={avatarUrl}
+            onUpload={(url: string) => {
+              setAvatarUrl(url);
+              updateProfile({ username, website, avatar_url: url });
+            }}
+          />
+        </View>
+        <View style={[styles.verticallySpaced, styles.mt20]}>
+          <TextInput value={session?.user?.email} style={styles.input} />
+        </View>
+        <View style={styles.verticallySpaced}>
+          <TextInput
+            style={styles.input}
+            value={username || ""}
+            onChangeText={(text) => setUsername(text)}
+            placeholder="username"
+          />
+        </View>
+        <View style={styles.verticallySpaced}>
+          <TextInput
+            style={styles.input}
+            value={website || ""}
+            onChangeText={(text) => setWebsite(text)}
+            placeholder="website"
+          />
+        </View>
 
-      <View style={[styles.verticallySpaced, styles.mt20]}>
-        <Button
-          title={loading ? "Loading ..." : "Update"}
-          onPress={() =>
-            updateProfile({ username, website, avatar_url: avatarUrl })
-          }
-          disabled={loading}
-        />
-      </View>
+        <View style={[styles.verticallySpaced, styles.mt20]}>
+          <Button
+            title={loading ? "Loading ..." : "Update"}
+            onPress={() =>
+              updateProfile({ username, website, avatar_url: avatarUrl })
+            }
+            disabled={loading}
+          />
+        </View>
 
-      <View style={styles.verticallySpaced}>
-        <Button title="Sign Out" onPress={() => supabase.auth.signOut()} />
+        <View style={styles.verticallySpaced}>
+          <Button title="Sign Out" onPress={handleSignOut} />
+        </View>
       </View>
-    </ScrollView>
+    </ViewWithKeyboard>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    marginTop: 40,
+    marginTop: 60,
     padding: 12,
   },
   verticallySpaced: {
@@ -153,7 +154,6 @@ const styles = StyleSheet.create({
     borderColor: "gray",
     borderWidth: 1,
     paddingHorizontal: 10,
-    width: 317,
     borderRadius: 5,
     backgroundColor: "#f0f0f0",
     color: "black",
