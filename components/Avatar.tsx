@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
-import { supabase } from "../lib/supabase";
 import { StyleSheet, View, Alert, Image, Button } from "react-native";
 import * as ImagePicker from "expo-image-picker";
+import { useSupabase } from "@/hooks/useSupabase";
 
 interface Props {
   size: number;
@@ -10,6 +10,7 @@ interface Props {
 }
 
 export default function Avatar({ url, size = 150, onUpload }: Props) {
+  const { uploadAvatar: supabaseUpload, downloadAvatar } = useSupabase();
   const [uploading, setUploading] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const avatarSize = { height: size, width: size };
@@ -20,13 +21,7 @@ export default function Avatar({ url, size = 150, onUpload }: Props) {
 
   async function downloadImage(path: string) {
     try {
-      const { data, error } = await supabase.storage
-        .from("avatars")
-        .download(path);
-
-      if (error) {
-        throw error;
-      }
+      const data = await downloadAvatar(path);
 
       const fr = new FileReader();
       fr.readAsDataURL(data);
@@ -64,21 +59,14 @@ export default function Avatar({ url, size = 150, onUpload }: Props) {
         throw new Error("No image uri!");
       }
 
-      const arraybuffer = await fetch(image.uri).then((res) =>
+      const arrayBuffer = await fetch(image.uri).then((res) =>
         res.arrayBuffer(),
       );
 
       const fileExt = image.uri?.split(".").pop()?.toLowerCase() ?? "jpeg";
       const path = `${Date.now()}.${fileExt}`;
-      const { data, error: uploadError } = await supabase.storage
-        .from("avatars")
-        .upload(path, arraybuffer, {
-          contentType: image.mimeType ?? "image/jpeg",
-        });
 
-      if (uploadError) {
-        throw uploadError;
-      }
+      const data = await supabaseUpload({ path, arrayBuffer, image });
 
       onUpload(data.path);
     } catch (error) {

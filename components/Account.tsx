@@ -5,9 +5,11 @@ import Avatar from "@/components/Avatar";
 import ViewWithKeyboard from "@/components/ViewWithKeyboard";
 import { AuthContext } from "@/context/auth";
 import { router } from "expo-router";
+import { useSupabase } from "@/hooks/useSupabase";
 
 export default function Account() {
-  const { session, signOut } = use(AuthContext);
+  const { session } = use(AuthContext);
+  const { signOut } = useSupabase();
 
   const [loading, setLoading] = useState(true);
   const [username, setUsername] = useState("");

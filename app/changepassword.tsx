@@ -1,4 +1,4 @@
-import { use, useState } from "react";
+import { useState } from "react";
 import {
   StyleSheet,
   ScrollView,
@@ -9,10 +9,10 @@ import {
   TextInput,
 } from "react-native";
 import { Stack, router, useLocalSearchParams } from "expo-router";
-import { AuthContext } from "@/context/auth";
+import { useSupabase } from "@/hooks/useSupabase";
 
 export default function ChangePassword() {
-  const authContext = use(AuthContext);
+  const supabase = useSupabase();
 
   const { accessToken, refreshToken } = useLocalSearchParams<{
     accessToken: string;
@@ -33,11 +33,11 @@ export default function ChangePassword() {
         throw new Error("type assertion for typescript");
       }
 
-      await authContext.loginWithToken({
+      await supabase.loginWithToken({
         access_token: accessToken,
         refresh_token: refreshToken,
       });
-      await authContext.updatePassword(password);
+      await supabase.updatePassword(password);
 
       router.push({ pathname: "/home" });
     } catch (error) {
