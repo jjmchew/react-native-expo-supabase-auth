@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { supabase } from "../lib/supabase";
 import {
   StyleSheet,
   ScrollView,
@@ -10,57 +9,37 @@ import {
   TextInput,
 } from "react-native";
 import { Stack, router, useLocalSearchParams } from "expo-router";
-
-const loginWithToken = async ({
-  access_token,
-  refresh_token,
-}: {
-  access_token: string;
-  refresh_token: string;
-}) => {
-  const signIn = async () => {
-    await supabase.auth.setSession({
-      access_token,
-      refresh_token,
-    });
-
-    return await supabase.auth.refreshSession();
-  };
-  const {
-    data: { session: newSession },
-  } = await signIn();
-
-  return newSession;
-};
+import { useSupabase } from "@/hooks/useSupabase";
 
 export default function ChangePassword() {
-  const { accessToken, refreshToken } = useLocalSearchParams();
+  const supabase = useSupabase();
+
+  const { accessToken, refreshToken } = useLocalSearchParams<{
+    accessToken: string;
+    refreshToken: string;
+  }>();
+
+  const didReceiveTokens = tokensReceived({ accessToken, refreshToken });
+  console.log({ didReceiveTokens });
 
   const [loading, setLoading] = useState(false);
   const [password, setPassword] = useState("");
 
-  if (typeof accessToken === "string" && typeof refreshToken === "string") {
-  }
-
   async function updatePassword({ password }: { password: string }) {
-    if (typeof accessToken !== "string" || typeof refreshToken !== "string") {
-      Alert.alert("No access token or refresh token");
-      return;
-    }
-
     try {
       setLoading(true);
 
-      await loginWithToken({
+      if (typeof accessToken !== "string" || typeof refreshToken !== "string") {
+        throw new Error("type assertion for typescript");
+      }
+
+      await supabase.loginWithToken({
         access_token: accessToken,
         refresh_token: refreshToken,
       });
+      await supabase.updatePassword(password);
 
-      const { error } = await supabase.auth.updateUser({ password });
-
-      if (error) throw error;
-
-      router.push({ pathname: "/" });
+      router.push({ pathname: "/home" });
     } catch (error) {
       if (error instanceof Error) {
         Alert.alert(error.message);
@@ -71,36 +50,52 @@ export default function ChangePassword() {
   }
 
   return (
-    <View>
-      <Stack.Screen options={{ title: "Change Password" }} />
-      <ScrollView
-        style={styles.container}
-        automaticallyAdjustKeyboardInsets={true}
-      >
+    <>
+      {didReceiveTokens ? (
         <View>
-          <Text>Update Password</Text>
-        </View>
-        <View style={styles.verticallySpaced}>
-          <TextInput
-            style={styles.input}
-            value={password || ""}
-            onChangeText={(text) => setPassword(text)}
-            placeholder="password"
-            secureTextEntry={true}
-          />
-        </View>
+          <Stack.Screen options={{ title: "Change Password" }} />
+          <ScrollView
+            style={styles.container}
+            automaticallyAdjustKeyboardInsets={true}
+          >
+            <View>
+              <Text>Update Password</Text>
+            </View>
+            <View style={styles.verticallySpaced}>
+              <TextInput
+                style={styles.input}
+                value={password || ""}
+                onChangeText={(text) => setPassword(text)}
+                placeholder="password"
+                secureTextEntry={true}
+              />
+            </View>
 
-        <View style={[styles.verticallySpaced, styles.mt20]}>
-          <Button
-            title={loading ? "Loading ..." : "Update"}
-            onPress={() => updatePassword({ password })}
-            disabled={loading}
-          />
+            <View style={[styles.verticallySpaced, styles.mt20]}>
+              <Button
+                title={loading ? "Loading ..." : "Update"}
+                onPress={() => updatePassword({ password })}
+                disabled={loading}
+              />
+            </View>
+          </ScrollView>
         </View>
-      </ScrollView>
-    </View>
+      ) : null}
+    </>
   );
 }
+
+const tokensReceived = ({
+  accessToken,
+  refreshToken,
+}: {
+  accessToken?: string;
+  refreshToken?: string;
+}) => {
+  if (typeof accessToken !== "string" || typeof refreshToken !== "string")
+    return false;
+  return true;
+};
 
 const styles = StyleSheet.create({
   container: {
