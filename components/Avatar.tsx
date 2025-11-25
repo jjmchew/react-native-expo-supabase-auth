@@ -57,7 +57,6 @@ export default function Avatar({ url, size = 150, onUpload }: Props) {
       }
 
       const image = result.assets[0];
-      console.log("Got image", image);
 
       const rawUploadData = await fetchImageForUpload({
         uri: image.uri,

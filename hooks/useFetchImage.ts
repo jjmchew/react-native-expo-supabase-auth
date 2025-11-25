@@ -14,7 +14,6 @@ export function useFetchImage() {
     uri,
     image,
   }: FetchImageForUploadProps) => {
-    console.log("fetchImageForUpload", uri);
     if (!uri) throw new Error("fetchImageForUpload: no image uri!");
 
     try {
@@ -32,7 +31,6 @@ export function useFetchImage() {
       const fileExt = uri?.split(".").pop()?.toLowerCase() ?? "jpeg";
       const path = `${Date.now()}.${fileExt}`;
 
-      console.log("fetchImageForUpload", { path, arrayBuffer, blob });
       return { path, arrayBuffer, image: blob };
     } catch (err) {
       console.error(err);
