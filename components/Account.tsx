@@ -6,10 +6,11 @@ import ViewWithKeyboard from "@/components/ViewWithKeyboard";
 import { AuthContext } from "@/context/auth";
 import { router } from "expo-router";
 import { useSupabase } from "@/hooks/useSupabase";
+import { SupabaseError } from "@/types/SupabaseError";
 
 export default function Account() {
   const { session } = use(AuthContext);
-  const { signOut } = useSupabase();
+  const { signOut, updateProfile: supabaseUpdateProfile } = useSupabase();
 
   const [loading, setLoading] = useState(true);
   const [username, setUsername] = useState("");
@@ -66,17 +67,15 @@ export default function Account() {
         username,
         website,
         avatar_url,
-        updated_at: new Date(),
       };
 
-      const { error } = await supabase.from("profiles").upsert(updates);
-
-      if (error) {
-        throw error;
-      }
+      await supabaseUpdateProfile(updates);
     } catch (error) {
+      console.error(error);
       if (error instanceof Error) {
         Alert.alert(error.message);
+      } else if (error instanceof SupabaseError) {
+        Alert.alert(error.data.message);
       }
     } finally {
       setLoading(false);
