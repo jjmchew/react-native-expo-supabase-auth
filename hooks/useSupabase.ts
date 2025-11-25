@@ -3,6 +3,7 @@ import { supabase } from "@/lib/supabase";
 import { Alert } from "react-native";
 import { AuthContext } from "@/context/auth";
 import * as ImagePicker from "expo-image-picker";
+import { SupabaseError, isSupabaseErrorData } from "@/types/SupabaseError";
 
 interface SupabaseFunction<TProps, TResult> {
   (props: TProps): TResult;
@@ -30,12 +31,19 @@ export function useSupabase() {
       setLoading(true);
       return await fn(args);
     } catch (err) {
-      if (err instanceof Error) setError(err);
+      if (isSupabaseErrorData(err)) {
+        const supabaseError = new SupabaseError(err.message, err);
+        setError(supabaseError);
+        throw supabaseError;
+      } else if (err instanceof Error) {
+        setError(err);
+      } else {
+        setError(new Error("wrapSupabase: Unknown Error received"));
+      }
+      throw err; // TResult or err as only return
     } finally {
       setLoading(false);
     }
-
-    throw new Error("type assertion");
   };
 
   /*
@@ -167,7 +175,7 @@ export function useSupabase() {
   interface UploadAvatarProps {
     path: string;
     arrayBuffer: ArrayBuffer;
-    image: ImagePicker.ImagePickerAsset;
+    image: Blob | ImagePicker.ImagePickerAsset;
   }
 
   interface UploadAvatarReturn {
@@ -189,11 +197,13 @@ export function useSupabase() {
     arrayBuffer,
     image,
   }: UploadAvatarProps) => {
-    console.log("uploadAvatar");
+    const contentType =
+      (image instanceof Blob ? image?.type : image?.mimeType) ?? "image/jpeg";
+
     const { data, error: uploadError } = await supabase.storage
       .from("avatars")
       .upload(path, arrayBuffer, {
-        contentType: image.mimeType ?? "image/jpeg",
+        contentType,
       });
 
     if (uploadError) {
@@ -225,6 +235,37 @@ export function useSupabase() {
     return data as Blob;
   };
 
+  /*
+   * updateProfile
+   */
+  interface UpdateProfileProps {
+    id?: string;
+    username?: string;
+    website?: string;
+    avatar_url?: string;
+    updated_at?: Date;
+  }
+
+  const updateProfile = async (props: UpdateProfileProps) =>
+    wrapSupabase<UpdateProfileProps, Promise<boolean>>({
+      fn: _updateProfile,
+      args: props,
+    });
+
+  const _updateProfile = async (newData: UpdateProfileProps) => {
+    const session = useAuth.session;
+    if (!session?.user) throw new Error("No user on the session!");
+    const payload = {
+      ...newData,
+      id: newData.id ?? session.user.id,
+      updated_at: new Date(),
+    };
+
+    const { error } = await supabase.from("profiles").upsert(payload);
+    if (error) throw error;
+    return true;
+  };
+
   return {
     loading,
     error,
@@ -236,5 +277,6 @@ export function useSupabase() {
     resetPassword,
     uploadAvatar,
     downloadAvatar,
+    updateProfile,
   };
 }
